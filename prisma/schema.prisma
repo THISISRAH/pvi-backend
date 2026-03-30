@@ -1,0 +1,747 @@
+// People's Voice Initiative — Prisma Schema
+// PostgreSQL database schema with all models, enums, and relations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum UserRole {
+  NATIONAL_ADMIN
+  ZONAL_COORDINATOR
+  STATE_COORDINATOR
+  LGA_COORDINATOR
+  WARD_LEADER
+  POLLING_AGENT
+  VOLUNTEER
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+
+
+enum MessageType {
+  BROADCAST
+  DIRECT
+  TASK
+  ANNOUNCEMENT
+}
+
+enum MessageDirection {
+  TOP_DOWN
+  PEER
+  BOTTOM_UP
+}
+
+enum MessagePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TargetLevel {
+  NATIONAL
+  ZONAL
+  STATE
+  LGA
+  WARD
+  POLLING_UNIT
+  ALL
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum EventType {
+  RALLY
+  MEETING
+  DOOR_TO_DOOR
+  TRAINING
+  OTHER
+}
+
+enum EventStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum CheckInMethod {
+  QR
+  MANUAL
+}
+
+enum ActivityType {
+  RALLY
+  MEETING
+  DOOR_TO_DOOR
+  PVC_DRIVE
+  OUTREACH
+  OTHER
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CARD
+  CASH
+  USSD
+  OTHER
+}
+
+enum DonationTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum DonationStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum NotificationType {
+  MESSAGE
+  TASK
+  EVENT
+  BROADCAST
+  SYSTEM
+  ALERT
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  BROADCAST
+  ROLE_CHANGE
+}
+
+enum MediaType {
+  POSTER
+  FLYER
+  VIDEO
+  AUDIO
+  DOCUMENT
+  CAPTION_PACK
+}
+
+enum MediaVisibility {
+  ALL
+  COORDINATORS_ONLY
+  NATIONAL_ONLY
+}
+
+enum IncidentType {
+  VIOLENCE
+  INTIMIDATION
+  MALPRACTICE
+  EQUIPMENT_FAILURE
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+}
+
+enum VolunteerTaskType {
+  DOOR_TO_DOOR
+  SOCIAL_MEDIA
+  PHONE_BANK
+  TRANSPORT
+  OTHER
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum GOTVStatus {
+  ASSIGNED
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+}
+
+// ─── GEOGRAPHY MODELS ────────────────────────────────────
+
+model Zone {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  states State[]
+  users  User[]
+
+  @@map("zones")
+}
+
+model State {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  zoneId    String   @map("zone_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  zone  Zone  @relation(fields: [zoneId], references: [id])
+  lgas  Lga[]
+  users User[]
+
+  @@map("states")
+}
+
+model Lga {
+  id        String   @id @default(uuid())
+  name      String
+  stateId   String   @map("state_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  state State  @relation(fields: [stateId], references: [id])
+  wards Ward[]
+  users User[]
+
+  @@map("lgas")
+}
+
+model Ward {
+  id        String   @id @default(uuid())
+  name      String
+  lgaId     String   @map("lga_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lga          Lga           @relation(fields: [lgaId], references: [id])
+  pollingUnits PollingUnit[]
+  users        User[]
+
+  @@map("wards")
+}
+
+model PollingUnit {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  wardId    String   @map("ward_id")
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ward  Ward   @relation(fields: [wardId], references: [id])
+  users User[]
+
+  incidentReports IncidentReport[]
+
+  @@map("polling_units")
+}
+
+// ─── USER MODEL ──────────────────────────────────────────
+
+model User {
+  id               String     @id @default(uuid())
+  fullName         String     @map("full_name")
+  phone            String     @unique
+  email            String     @unique
+  passwordHash     String     @map("password_hash")
+  gender           Gender?
+  dateOfBirth      DateTime?  @map("date_of_birth")
+  profilePhotoUrl  String?    @map("profile_photo_url")
+  voterIdEnc       String?    @map("voter_id_enc")
+  ninEnc           String?    @map("nin_enc")
+  occupation       String?
+
+  role             UserRole   @default(MEMBER)
+  status           UserStatus @default(ACTIVE)
+  hasPvc           Boolean    @default(false) @map("has_pvc")
+  pvcVerified      Boolean    @default(false) @map("pvc_verified")
+  engagementScore  Int        @default(0) @map("engagement_score")
+  zoneId           String?    @map("zone_id")
+  stateId          String?    @map("state_id")
+  lgaId            String?    @map("lga_id")
+  wardId           String?    @map("ward_id")
+  pollingUnitId    String?    @map("polling_unit_id")
+  registeredById   String?    @map("registered_by")
+  twoFactorEnabled Boolean    @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?    @map("two_factor_secret")
+  lastLoginAt      DateTime?  @map("last_login_at")
+  deviceFingerprint String?   @map("device_fingerprint")
+  consentGiven     Boolean    @default(false) @map("consent_given")
+  refreshToken     String?    @map("refresh_token")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  zone        Zone?        @relation(fields: [zoneId], references: [id])
+  state       State?       @relation(fields: [stateId], references: [id])
+  lga         Lga?         @relation(fields: [lgaId], references: [id])
+  ward        Ward?        @relation(fields: [wardId], references: [id])
+  pollingUnit PollingUnit? @relation(fields: [pollingUnitId], references: [id])
+  registeredBy User?       @relation("UserRegistrations", fields: [registeredById], references: [id])
+  registeredUsers User[]   @relation("UserRegistrations")
+
+  // Messages
+  sentMessages       Message[]           @relation("SentMessages")
+  messageRecipients  MessageRecipient[]
+
+  // Tasks
+  assignedTasks      Task[]              @relation("TaskAssigner")
+  
+  // Events
+  organizedEvents    Event[]             @relation("EventOrganizer")
+  eventAttendances   EventAttendee[]
+
+  // Activity
+  activityUploads    ActivityUpload[]
+
+  // Donations
+  donations          Donation[]          @relation("DonorDonations")
+  confirmedDonations Donation[]          @relation("DonationConfirmer")
+
+  // Notifications
+  notifications      Notification[]
+
+  // Audit
+  auditLogs          AuditLog[]
+
+  // Media
+  uploadedMedia      MediaLibrary[]
+
+  // Incidents
+  reportedIncidents  IncidentReport[]    @relation("IncidentReporter")
+  resolvedIncidents  IncidentReport[]    @relation("IncidentResolver")
+
+  // Volunteer Tasks
+  assignedVolunteerTasks  VolunteerTask[] @relation("VolunteerTaskAssignee")
+  createdVolunteerTasks   VolunteerTask[] @relation("VolunteerTaskAssigner")
+
+  // Badges
+  badges             UserBadge[]
+
+  // Surveys
+  createdSurveys     Survey[]
+  surveyResponses    SurveyResponse[]
+
+  // GOTV
+  gotvAsVolunteer    GOTVAssignment[]    @relation("GOTVVolunteer")
+  gotvAsMember       GOTVAssignment[]    @relation("GOTVMember")
+
+  @@index([role])
+  @@index([stateId])
+  @@index([lgaId])
+  @@index([wardId])
+  @@index([status])
+  @@map("users")
+}
+
+// ─── MESSAGING MODELS ────────────────────────────────────
+
+model Message {
+  id                    String           @id @default(uuid())
+  senderId              String           @map("sender_id")
+  type                  MessageType
+  direction             MessageDirection
+  subject               String?
+  body                  String
+  mediaUrls             String[]         @default([]) @map("media_urls")
+  targetLevel           TargetLevel?     @map("target_level")
+  targetScopeId         String?          @map("target_scope_id")
+  priority              MessagePriority  @default(NORMAL)
+  requiresAcknowledgement Boolean        @default(false) @map("requires_acknowledgement")
+  parentMessageId       String?          @map("parent_message_id")
+  threadId              String?          @map("thread_id")
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  sender        User               @relation("SentMessages", fields: [senderId], references: [id])
+  parentMessage Message?           @relation("MessageThread", fields: [parentMessageId], references: [id])
+  replies       Message[]          @relation("MessageThread")
+  recipients    MessageRecipient[]
+  thread        MessageThread?     @relation(fields: [threadId], references: [id])
+
+  @@index([senderId])
+  @@index([targetLevel])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id             String    @id @default(uuid())
+  messageId      String    @map("message_id")
+  userId         String    @map("user_id")
+  readAt         DateTime? @map("read_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  forwardedAt    DateTime? @map("forwarded_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId])
+  @@map("message_recipients")
+}
+
+model MessageThread {
+  id           String   @id @default(uuid())
+  participants String[] @default([])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  messages Message[]
+
+  @@map("message_threads")
+}
+
+// ─── TASK MODEL ──────────────────────────────────────────
+
+model Task {
+  id                 String      @id @default(uuid())
+  title              String
+  description        String?
+  assignedById       String      @map("assigned_by")
+  assignedToLevel    TargetLevel @map("assigned_to_level")
+  assignedToScopeId  String?     @map("assigned_to_scope_id")
+  deadline           DateTime?
+  status             TaskStatus  @default(PENDING)
+  completionPhotoUrl String?     @map("completion_photo_url")
+  completionNotes    String?     @map("completion_notes")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  assignedBy      User             @relation("TaskAssigner", fields: [assignedById], references: [id])
+  activityUploads ActivityUpload[]
+
+  @@index([status])
+  @@index([assignedToLevel])
+  @@map("tasks")
+}
+
+// ─── EVENT MODELS ────────────────────────────────────────
+
+model Event {
+  id                  String      @id @default(uuid())
+  title               String
+  description         String?
+  eventType           EventType   @map("event_type")
+  organizerId         String      @map("organizer_id")
+  zoneId              String?     @map("zone_id")
+  stateId             String?     @map("state_id")
+  lgaId               String?     @map("lga_id")
+  wardId              String?     @map("ward_id")
+  locationName        String?     @map("location_name")
+  latitude            Float?
+  longitude           Float?
+  scheduledAt         DateTime    @map("scheduled_at")
+  estimatedAttendance Int?        @map("estimated_attendance")
+  actualAttendance    Int?        @map("actual_attendance")
+  qrCodeToken         String      @unique @map("qr_code_token")
+  mediaUrls           String[]    @default([]) @map("media_urls")
+  status              EventStatus @default(PLANNED)
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  organizer  User            @relation("EventOrganizer", fields: [organizerId], references: [id])
+  attendees  EventAttendee[]
+  activityUploads ActivityUpload[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("events")
+}
+
+model EventAttendee {
+  id            String        @id @default(uuid())
+  eventId       String        @map("event_id")
+  userId        String        @map("user_id")
+  checkedInAt   DateTime?     @map("checked_in_at")
+  selfieUrl     String?       @map("selfie_url")
+  checkInMethod CheckInMethod? @map("check_in_method")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_attendees")
+}
+
+// ─── ACTIVITY UPLOAD MODEL ───────────────────────────────
+
+model ActivityUpload {
+  id           String       @id @default(uuid())
+  uploaderId   String       @map("uploader_id")
+  activityType ActivityType @map("activity_type")
+  caption      String?
+  mediaUrls    String[]     @default([]) @map("media_urls")
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  geoVerified  Boolean      @default(false) @map("geo_verified")
+  taskId       String?      @map("task_id")
+  eventId      String?      @map("event_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  uploader User   @relation(fields: [uploaderId], references: [id])
+  task     Task?  @relation(fields: [taskId], references: [id])
+  event    Event? @relation(fields: [eventId], references: [id])
+
+  @@index([uploaderId])
+  @@index([activityType])
+  @@map("activity_uploads")
+}
+
+// ─── DONATION MODEL ─────────────────────────────────────
+
+model Donation {
+  id               String        @id @default(uuid())
+  donorId          String        @map("donor_id")
+  amount           Float
+  currency         String        @default("NGN")
+  paymentMethod    PaymentMethod @map("payment_method")
+  paymentReference String?       @map("payment_reference")
+  tier             DonationTier?
+  isRecurring      Boolean       @default(false) @map("is_recurring")
+  status           DonationStatus @default(PENDING)
+  notes            String?
+  confirmedById    String?       @map("confirmed_by")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  donor       User  @relation("DonorDonations", fields: [donorId], references: [id])
+  confirmedBy User? @relation("DonationConfirmer", fields: [confirmedById], references: [id])
+
+  @@index([donorId])
+  @@index([status])
+  @@map("donations")
+}
+
+// ─── NOTIFICATION MODEL ─────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// ─── AUDIT LOG MODEL ────────────────────────────────────
+
+model AuditLog {
+  id           String      @id @default(uuid())
+  userId       String      @map("user_id")
+  action       AuditAction
+  resourceType String?     @map("resource_type")
+  resourceId   String?     @map("resource_id")
+  ipAddress    String?     @map("ip_address")
+  userAgent    String?     @map("user_agent")
+  deviceInfo   String?     @map("device_info")
+  metadata     Json?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── MEDIA LIBRARY MODEL ────────────────────────────────
+
+model MediaLibrary {
+  id            String          @id @default(uuid())
+  title         String
+  description   String?
+  type          MediaType
+  fileUrl       String          @map("file_url")
+  thumbnailUrl  String?         @map("thumbnail_url")
+  fileSize      Int?            @map("file_size")
+  mimeType      String?         @map("mime_type")
+  uploadedById  String          @map("uploaded_by")
+  visibility    MediaVisibility @default(ALL)
+  downloadCount Int             @default(0) @map("download_count")
+  tags          String[]        @default([])
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([type])
+  @@index([visibility])
+  @@map("media_library")
+}
+
+// ─── INCIDENT REPORT MODEL ──────────────────────────────
+
+model IncidentReport {
+  id              String         @id @default(uuid())
+  reporterId      String         @map("reporter_id")
+  incidentType    IncidentType   @map("incident_type")
+  description     String
+  latitude        Float?
+  longitude       Float?
+  address         String?
+  photoUrls       String[]       @default([]) @map("photo_urls")
+  severity        Severity
+  status          IncidentStatus @default(OPEN)
+  pollingUnitId   String?        @map("polling_unit_id")
+  wardId          String?        @map("ward_id")
+  resolvedById    String?        @map("resolved_by")
+  resolutionNotes String?        @map("resolution_notes")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  reporter    User         @relation("IncidentReporter", fields: [reporterId], references: [id])
+  resolvedBy  User?        @relation("IncidentResolver", fields: [resolvedById], references: [id])
+  pollingUnit PollingUnit? @relation(fields: [pollingUnitId], references: [id])
+
+  @@index([severity])
+  @@index([status])
+  @@map("incident_reports")
+}
+
+// ─── VOLUNTEER TASK MODEL ────────────────────────────────
+
+model VolunteerTask {
+  id                 String            @id @default(uuid())
+  title              String
+  description        String?
+  taskType           VolunteerTaskType @map("task_type")
+  assignedToId       String            @map("assigned_to")
+  assignedById       String            @map("assigned_by")
+  wardId             String?           @map("ward_id")
+  status             TaskStatus        @default(PENDING)
+  deadline           DateTime?
+  completionProofUrl String?           @map("completion_proof_url")
+  pointsAwarded      Int               @default(0) @map("points_awarded")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  assignedTo User @relation("VolunteerTaskAssignee", fields: [assignedToId], references: [id])
+  assignedBy User @relation("VolunteerTaskAssigner", fields: [assignedById], references: [id])
+
+  @@index([assignedToId])
+  @@index([status])
+  @@map("volunteer_tasks")
+}
+
+// ─── BADGE MODELS ────────────────────────────────────────
+
+model Badge {
+  id             String @id @default(uuid())
+  name           String @unique
+  description    String?
+  iconUrl        String? @map("icon_url")
+  pointsRequired Int     @default(0) @map("points_required")
+  badgeType      String  @map("badge_type")
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// ─── SURVEY MODELS ───────────────────────────────────────
+
+model Survey {
+  id            String       @id @default(uuid())
+  title         String
+  description   String?
+  createdById   String       @map("created_by")
+  targetLevel   TargetLevel? @map("target_level")
+  targetScopeId String?      @map("target_scope_id")
+  deadline      DateTime?
+  status        SurveyStatus @default(DRAFT)
+  questions     Json         @default("[]")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  createdBy User             @relation(fields: [createdById], references: [id])
+  responses SurveyResponse[]
+
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  id           String   @id @default(uuid())
+  surveyId     String   @map("survey_id")
+  respondentId String   @map("respondent_id")
+  answers      Json
+  submittedAt  DateTime @default(now()) @map("submitted_at")
+
+  survey     Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  respondent User   @relation(fields: [respondentId], references: [id])
+
+  @@unique([surveyId, respondentId])
+  @@map("survey_responses")
+}
+
+// ─── GOTV ASSIGNMENT MODEL ──────────────────────────────
+
+model GOTVAssignment {
+  id              String     @id @default(uuid())
+  volunteerId     String     @map("volunteer_id")
+  memberId        String     @map("member_id")
+  pickupLocation  String?    @map("pickup_location")
+  dropoffLocation String?    @map("dropoff_location")
+  scheduledTime   DateTime?  @map("scheduled_time")
+  status          GOTVStatus @default(ASSIGNED)
+  notes           String?
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  volunteer User @relation("GOTVVolunteer", fields: [volunteerId], references: [id])
+  member    User @relation("GOTVMember", fields: [memberId], references: [id])
+
+  @@index([volunteerId])
+  @@index([status])
+  @@map("gotv_assignments")
+}
