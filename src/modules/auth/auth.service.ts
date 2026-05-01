@@ -8,7 +8,8 @@ import { createOTP, verifyOTP } from '../../services/otp';
 import { sendEmail, buildOTPEmail } from '../../services/email';
 import { createAuditLog } from '../../services/auditLog';
 import { AppError, AuthError, ConflictError, NotFoundError } from '../../utils/errors';
-import { RegisterInput, LoginInput } from './auth.validators';
+import { RegisterInput, HtrmRegisterInput, LoginInput } from './auth.validators';
+import crypto from 'crypto';
 
 export class AuthService {
   /**
@@ -70,6 +71,79 @@ export class AuthService {
       to: data.email,
       subject: 'Verify your PVI account',
       html: buildOTPEmail(data.fullName, otp),
+    });
+
+    return user;
+  }
+
+  /**
+   * Register a Hard-To-Reach Member (HTRM)
+   * Phone, email, password are optional.
+   * Registered by a logged-in field agent on behalf of the member.
+   */
+  async registerHtrm(data: HtrmRegisterInput, registeredById: string) {
+    // Generate placeholder values for required unique fields
+    const uid = crypto.randomBytes(6).toString('hex');
+    const phone = data.phone || `+2340000${uid.slice(0, 7)}`;
+    const email = data.email || `htrm-${uid}@pvi.internal`;
+    // Auto-generate password (HTRM members don't log in themselves)
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), BCRYPT_ROUNDS);
+
+    // Check if provided phone/email already exists
+    if (data.phone || data.email) {
+      const conditions: any[] = [];
+      if (data.phone) conditions.push({ phone: data.phone });
+      if (data.email) conditions.push({ email: data.email });
+      const existing = await prisma.user.findFirst({ where: { OR: conditions } });
+      if (existing) {
+        throw new ConflictError('A member with this phone or email already exists');
+      }
+    }
+
+    // Encrypt sensitive fields
+    const voterIdEnc = data.voterId ? encrypt(data.voterId) : null;
+    const ninEnc = data.nin ? encrypt(data.nin) : null;
+
+    // Create HTRM user — immediately ACTIVE (no OTP verification needed)
+    const user = await prisma.user.create({
+      data: {
+        fullName: data.fullName,
+        phone,
+        email,
+        passwordHash,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+        occupation: data.occupation,
+
+        zoneId: data.zoneId,
+        stateId: data.stateId,
+        lgaId: data.lgaId,
+        wardId: data.wardId,
+        pollingUnitId: data.pollingUnitId,
+        voterIdEnc,
+        ninEnc,
+        hasPvc: data.hasPvc,
+        consentGiven: data.consentGiven,
+        registeredById,
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+      },
+    });
+
+    // Audit the HTRM registration
+    await createAuditLog({
+      userId: registeredById,
+      action: 'CREATE',
+      resourceType: 'User',
+      resourceId: user.id,
+      metadata: { type: 'HTRM_REGISTRATION', memberName: data.fullName },
     });
 
     return user;

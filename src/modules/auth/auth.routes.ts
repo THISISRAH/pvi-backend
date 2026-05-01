@@ -5,6 +5,7 @@ import { authLimiter } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
 import {
   registerSchema,
+  htrmRegisterSchema,
   loginSchema,
   verifyOtpSchema,
   forgotPasswordSchema,
@@ -16,6 +17,7 @@ const router = Router();
 
 // Rate-limited auth endpoints
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
+router.post('/register-htrm', authenticate, validate(htrmRegisterSchema), authController.registerHtrm);
 router.post('/verify-otp', authLimiter, validate(verifyOtpSchema), authController.verifyOtp);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
 router.post('/refresh-token', authLimiter, validate(refreshTokenSchema), authController.refreshToken);

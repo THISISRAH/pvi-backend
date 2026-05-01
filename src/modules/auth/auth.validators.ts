@@ -23,6 +23,32 @@ export const registerSchema = z.object({
   }),
 });
 
+// ─── HTRM (Hard-To-Reach Member) Registration ─────────
+// Phone, email, password are NOT required. A logged-in user
+// registers the HTRM on their behalf (registeredById is set).
+export const htrmRegisterSchema = z.object({
+  fullName: z.string().min(2).max(100),
+  phone: z.string().regex(/^(\+234|0)[0-9]{10}$/, 'Invalid Nigerian phone number').optional(),
+  email: z.string().email().optional(),
+  gender: z.nativeEnum(Gender).optional(),
+  dateOfBirth: z.string().datetime().optional(),
+  occupation: z.string().max(100).optional(),
+
+  zoneId: z.string().uuid().optional(),
+  stateId: z.string().uuid().optional(),
+  lgaId: z.string().uuid().optional(),
+  wardId: z.string().uuid().optional(),
+  pollingUnitId: z.string().uuid().optional(),
+  voterId: z.string().optional(),
+  nin: z.string().optional(),
+  hasPvc: z.boolean().default(false),
+  consentGiven: z.boolean().refine(val => val === true, {
+    message: 'Consent must be obtained from the member',
+  }),
+  // Optional notes from the field registrar
+  registrationNotes: z.string().max(500).optional(),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -48,5 +74,6 @@ export const refreshTokenSchema = z.object({
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type HtrmRegisterInput = z.infer<typeof htrmRegisterSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;

@@ -43,16 +43,16 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 export function buildOTPEmail(name: string, otp: string): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #1a5f2a;">People's Voice Initiative</h2>
+      <h2 style="color: #0d9488;">The Nahaya Foundation</h2>
       <p>Hello ${name},</p>
       <p>Your verification code is:</p>
-      <div style="background: #f0f7f1; border: 2px solid #1a5f2a; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a5f2a;">${otp}</span>
+      <div style="background: #f0fdfa; border: 2px solid #0d9488; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0d9488;">${otp}</span>
       </div>
       <p>This code expires in 10 minutes.</p>
       <p>If you didn't request this, please ignore this email.</p>
       <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-      <p style="color: #888; font-size: 12px;">People's Voice Initiative — Together for a better Nigeria.</p>
+      <p style="color: #888; font-size: 12px;">The Nahaya Foundation — Empowering Women, Children & Youth across Nigeria.</p>
     </div>
   `;
 }

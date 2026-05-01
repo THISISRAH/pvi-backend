@@ -12,6 +12,15 @@ export class AuthController {
     }
   }
 
+  async registerHtrm(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await authService.registerHtrm(req.body, req.user!.id);
+      sendSuccess(res, { user, message: 'Hard-to-reach member registered successfully.' }, 201);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async verifyOtp(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, otp } = req.body;

@@ -113,14 +113,14 @@ const SAMPLE_POLLING_UNITS: Record<string, { name: string; code: string; lat?: n
 
 // Test users for each role
 const TEST_USERS = [
-  { fullName: 'National Admin', email: 'admin@pvi.ng', phone: '+2348010000001', role: 'NATIONAL_ADMIN' as UserRole },
-  { fullName: 'Zonal Coordinator SW', email: 'zonal.sw@pvi.ng', phone: '+2348010000002', role: 'ZONAL_COORDINATOR' as UserRole, zoneCode: 'SW' },
-  { fullName: 'State Coordinator Lagos', email: 'state.lag@pvi.ng', phone: '+2348010000003', role: 'STATE_COORDINATOR' as UserRole, stateCode: 'LA' },
-  { fullName: 'LGA Coordinator Ikeja', email: 'lga.ikeja@pvi.ng', phone: '+2348010000004', role: 'LGA_COORDINATOR' as UserRole, stateCode: 'LA', lgaName: 'Ikeja' },
-  { fullName: 'Ward Leader Alausa', email: 'ward.alausa@pvi.ng', phone: '+2348010000005', role: 'WARD_LEADER' as UserRole, stateCode: 'LA', lgaName: 'Ikeja', wardName: 'Alausa' },
-  { fullName: 'Polling Agent Alausa', email: 'agent.alausa@pvi.ng', phone: '+2348010000006', role: 'POLLING_AGENT' as UserRole, stateCode: 'LA', lgaName: 'Ikeja', wardName: 'Alausa' },
-  { fullName: 'Volunteer Lagos', email: 'volunteer@pvi.ng', phone: '+2348010000007', role: 'VOLUNTEER' as UserRole, stateCode: 'LA' },
-  { fullName: 'Member Lagos', email: 'member@pvi.ng', phone: '+2348010000008', role: 'MEMBER' as UserRole, stateCode: 'LA' },
+  { fullName: 'Asabe Baba Nahaya', email: 'admin@nahayafoundation.org', phone: '+2347030215337', role: 'NATIONAL_ADMIN' as UserRole },
+  { fullName: 'Regional Coordinator NC', email: 'regional.nc@nahayafoundation.org', phone: '+2348010000002', role: 'ZONAL_COORDINATOR' as UserRole, zoneCode: 'NC' },
+  { fullName: 'State Coordinator FCT', email: 'state.fct@nahayafoundation.org', phone: '+2348010000003', role: 'STATE_COORDINATOR' as UserRole, stateCode: 'FC' },
+  { fullName: 'Community Leader AMAC', email: 'community.amac@nahayafoundation.org', phone: '+2348010000004', role: 'LGA_COORDINATOR' as UserRole, stateCode: 'FC', lgaName: 'Abuja Municipal' },
+  { fullName: 'Field Officer Wuse', email: 'field.wuse@nahayafoundation.org', phone: '+2348010000005', role: 'WARD_LEADER' as UserRole, stateCode: 'FC', lgaName: 'Abuja Municipal', wardName: 'Wuse' },
+  { fullName: 'Outreach Agent Wuse', email: 'outreach.wuse@nahayafoundation.org', phone: '+2348010000006', role: 'POLLING_AGENT' as UserRole, stateCode: 'FC', lgaName: 'Abuja Municipal', wardName: 'Wuse' },
+  { fullName: 'Volunteer FCT', email: 'volunteer@nahayafoundation.org', phone: '+2348010000007', role: 'VOLUNTEER' as UserRole, stateCode: 'FC' },
+  { fullName: 'Supporter FCT', email: 'supporter@nahayafoundation.org', phone: '+2348010000008', role: 'MEMBER' as UserRole, stateCode: 'FC' },
 ];
 
 async function seed() {
@@ -221,14 +221,14 @@ async function seed() {
   // ─── Create Badges ────────────────────────────
   console.log('🏅 Creating badges...');
   const badges = [
-    { name: 'First Registration', description: 'Registered on the platform', badgeType: 'ONBOARDING', pointsRequired: 0 },
-    { name: 'Mobilizer', description: 'Recruited 10+ members', badgeType: 'RECRUITMENT', pointsRequired: 200 },
-    { name: 'Team Leader', description: 'Managed 5+ successful tasks', badgeType: 'LEADERSHIP', pointsRequired: 100 },
-    { name: 'Rally Champion', description: 'Attended 10+ rallies', badgeType: 'EVENTS', pointsRequired: 150 },
-    { name: 'PVC Champion', description: 'Verified 50+ PVC holders', badgeType: 'PVC', pointsRequired: 250 },
-    { name: 'Early Bird', description: 'First to acknowledge broadcasts', badgeType: 'COMMUNICATION', pointsRequired: 50 },
-    { name: 'Social Media Star', description: 'Completed 20+ social media tasks', badgeType: 'SOCIAL_MEDIA', pointsRequired: 100 },
-    { name: 'Door Knocker', description: 'Completed 50+ door-to-door visits', badgeType: 'FIELD_WORK', pointsRequired: 300 },
+    { name: 'Welcome Aboard', description: 'Registered on the platform', badgeType: 'ONBOARDING', pointsRequired: 0 },
+    { name: 'Community Builder', description: 'Recruited 10+ volunteers', badgeType: 'RECRUITMENT', pointsRequired: 200 },
+    { name: 'Team Leader', description: 'Managed 5+ successful programs', badgeType: 'LEADERSHIP', pointsRequired: 100 },
+    { name: 'Outreach Champion', description: 'Attended 10+ outreach events', badgeType: 'EVENTS', pointsRequired: 150 },
+    { name: 'Impact Maker', description: 'Helped 50+ beneficiaries', badgeType: 'PVC', pointsRequired: 250 },
+    { name: 'First Responder', description: 'First to respond to announcements', badgeType: 'COMMUNICATION', pointsRequired: 50 },
+    { name: 'Awareness Star', description: 'Completed 20+ awareness campaigns', badgeType: 'SOCIAL_MEDIA', pointsRequired: 100 },
+    { name: 'Field Hero', description: 'Completed 50+ field visits', badgeType: 'FIELD_WORK', pointsRequired: 300 },
   ];
   for (const badge of badges) {
     await prisma.badge.create({ data: badge });
@@ -239,11 +239,11 @@ async function seed() {
   console.log('👤 Creating test users...');
   const passwordHash = await bcrypt.hash('Password123!', 12);
 
-  // Get reference IDs for SW zone and Lagos state
-  const swZoneId = zoneMap['SW'];
-  const lagosStateId = stateMap['LA'];
-  const ikejaLgaId = lgaMap['Ikeja'];
-  const alausaWardId = wardMap['Alausa'];
+  // Get reference IDs for NC zone and FCT
+  const ncZoneId = zoneMap['NC'];
+  const fctStateId = stateMap['FC'];
+  const amacLgaId = lgaMap['Abuja Municipal'];
+  const wuseWardId = wardMap['Wuse'];
 
   for (const testUser of TEST_USERS) {
     const userData: any = {
@@ -262,27 +262,27 @@ async function seed() {
       case 'NATIONAL_ADMIN':
         break;
       case 'ZONAL_COORDINATOR':
-        userData.zoneId = swZoneId;
+        userData.zoneId = ncZoneId;
         break;
       case 'STATE_COORDINATOR':
-        userData.zoneId = swZoneId;
-        userData.stateId = lagosStateId;
+        userData.zoneId = ncZoneId;
+        userData.stateId = fctStateId;
         break;
       case 'LGA_COORDINATOR':
-        userData.zoneId = swZoneId;
-        userData.stateId = lagosStateId;
-        userData.lgaId = ikejaLgaId;
+        userData.zoneId = ncZoneId;
+        userData.stateId = fctStateId;
+        userData.lgaId = amacLgaId;
         break;
       case 'WARD_LEADER':
       case 'POLLING_AGENT':
-        userData.zoneId = swZoneId;
-        userData.stateId = lagosStateId;
-        userData.lgaId = ikejaLgaId;
-        userData.wardId = alausaWardId;
+        userData.zoneId = ncZoneId;
+        userData.stateId = fctStateId;
+        userData.lgaId = amacLgaId;
+        userData.wardId = wuseWardId;
         break;
       default:
-        userData.zoneId = swZoneId;
-        userData.stateId = lagosStateId;
+        userData.zoneId = ncZoneId;
+        userData.stateId = fctStateId;
         break;
     }
 

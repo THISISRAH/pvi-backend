@@ -1,7 +1,7 @@
 {
-  "name": "pvi-backend",
+  "name": "nahaya-foundation-backend",
   "version": "1.0.0",
-  "description": "People's Voice Initiative - Backend API",
+  "description": "The Nahaya Foundation — Backend API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "npx nodemon --exec npx ts-node src/server.ts",
@@ -10,6 +10,7 @@
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:seed": "npx ts-node src/prisma/seed.ts",
+    "seed:inec": "npx ts-node src/prisma/seed-inec.ts",
     "prisma:studio": "npx prisma studio"
   },
   "prisma": {
